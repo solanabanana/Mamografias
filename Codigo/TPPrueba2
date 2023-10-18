@@ -1,4 +1,4 @@
-img = imread('2018_BC005421_ MLO_L.jpg');
+img = imread('2018_BC0021981_ CC_R.jpg');
 img = rgb2gray(img);
 figure(1)
 subplot(1,3,1);
@@ -8,9 +8,9 @@ imshow(img);
 hold on;
 
 umbrales = multithresh(img,3);
-min = umbrales(2);
-
-img_out = imadjust(img, [110, 255]/255, [0, 255]/255);
+min = single(umbrales(2));
+umbral = [min/255, 1];
+img_out = imadjust(img, umbral, [0, 255]/255);
 
 subplot(1,3,2)
 imshow(img_out);
