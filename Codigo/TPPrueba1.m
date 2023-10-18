@@ -1,5 +1,10 @@
 img = imread('2018_BC0021981_ CC_R.jpg');
-img = rgb2gray(img);
+
+gray = ismatrix(img);
+if gray == false %no esta en escala de grises
+    img = rgb2gray(img);
+end
+
 figure(1)
 imshow(img);
 imcontrast;
