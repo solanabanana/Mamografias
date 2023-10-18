@@ -39,5 +39,19 @@ BW1 = imclose(BW1, SE3);
 BW1 = imopen(BW1, SE4);
 BW1 = imdilate(BW1, SE5);
 
+BW1 = imerode(imagen, SE2); 
+BW1 = imerode(BW1, SE2); 
+BW1 = imerode(BW1, SE2); 
+BW2 = imclose(BW1, SE3); 
+BW3 = imopen(BW2, SE4);
+BW3 = imdilate(BW3, SE5);
+
+tumor = imagen .* BW3;
+
 figure(3)
-imshowpair(imagen, BW1, 'montage');
+subplot(1,3,1)
+imshow(imagen);
+subplot(1,3,2)
+imshow(BW3);
+subplot(1,3,3)
+imshow(tumor);
