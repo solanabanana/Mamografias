@@ -25,7 +25,7 @@ Tfinal = uint8(Tfinal);
 
 %% desviacion estandar DE
 % es alta comparada con masas beningnas -> DE>80
-DE = std2(Tfinal(Tfinal>0));
+DE = std2(binLocations);
 
 %% Suavidad S
 % es alta para masas sospechosas -> S >0.10
