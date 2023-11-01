@@ -10,14 +10,11 @@ clear
 %filename='Maligno2.jpeg';% FUNCIONA
 %filename='Maligno3.jpeg';%ENC=0.93
 %filename='Maligno4.jpg'; %ENC=0.89
-filename='Maligno6.jpeg';% FUNCIONA
-
-%filename='Maligno7.jpg';%NO SE SI ES EL TUMOR REALMENTE!
-
+%filename='Maligno6.jpeg';% FUNCIONA
 %filename='Maligno8.jpg';% FUNCIONA
 %filename='Maligno11.jpg';%F
-%filename='Maligno12.jpg';%F, comentar restriccion area!
-%filename='Maligno14.jpg';
+%filename='Maligno12.jpg';%F, comentar restriccion FR!
+filename='Maligno14.jpg';
 
 
 %filename='Benigno1.jpg';% 1era de github. ENC=0.82
@@ -37,10 +34,14 @@ filename='Maligno6.jpeg';% FUNCIONA
 %filename='Maligno10.jpg';%no segmenta bien
 %filename='Benigno3.jpg';%RARIII
 %filename='Benigno9.jpg';%de=11, k=269, ni yo identifico el tumor.
+%filename='Maligno7.jpg';%NO SE SI ES EL TUMOR REALMENTE!
+
 
 %MAL IDENTIFICADAS:
 %filename='Maligno9.jpg'; 
 %filename='Benigno5.jpg';%de=8.52, k=430
+
+
 
 %NI IDEA PROBLEMA
 % filename='146978545.jpeg';%NO FUNCIONA 
@@ -188,11 +189,11 @@ for k = 1:length(FR)
         'Color', 'red', 'FontSize', 10, 'HorizontalAlignment', 'center');
 end
 
-% for i=1:length(prop)
-%     if FR(i) < 0.55
-%        mask(L1 == i) = 0;
-%     end
-% end
+for i=1:length(prop)
+    if FR(i) < 0.55
+       mask(L1 == i) = 0;
+    end
+end
 
 L2 = bwlabel(mask);
 prop2 = regionprops(mask, 'Area');
@@ -269,6 +270,7 @@ tumorR=uint8(tumorR);
 vector=uint8(tumorR(:));
 vectord=double(tumorR(:));
 
+m=mean(tumorR(:));
 de=std2(vector);
 k = kurtosis(vectord);
 
@@ -299,40 +301,12 @@ if resultado=='M'
 end
 
 
-%glcm = graycomatrix(tumor, 'NumLevels', 256, 'Offset', [0 1; -1 1; -1 0; -1 -1]);
+glcm = graycomatrix(tumor, 'NumLevels', 256, 'Offset', [0 1; -1 1; -1 0; -1 -1]);
 % Calcular propiedades de la GLCM
-%propiedades_glcm = graycoprops(glcm, {'Contrast', 'Energy'});
-
-
-
-%------------------------------------------------
-%MALIGNO vs BENIGNO
-
-%% verifico si se encontraron tumores 
-tumor_neg = sum(tumor(:)); 
-
-if tumor_neg == 0 %no hay tumor para analizar
-    resultado = 'N';
-end
-
-%% tenemos que aplicar la mascara a la imagen original 
-% para quedarnos con el segmento del tumor en esacala de grises
-
-% el analisis lo tenemos que hacer sobre la escala de grises!
-ImgOrg=imread(filename);
-gray = ismatrix(ImgOrg);
-I=ImgOrg;
-if gray == false %no esta en escala de grises
-    I = rgb2gray(ImgOrg);
-end
-%I = rgb2gray(ImgOrg);
-
-%aplico la mascara a la imagen origI = rgb2gray(ImgOrg);
-Tfinal = double(I).*tumor;
-Tfinal = uint8(Tfinal);
+propiedades_glcm = graycoprops(glcm, {'Contrast', 'Energy'});
 
 % Calcular propiedades de la forma (área y perímetro) con regionprops
-propiedades = regionprops(tumor, 'Area', 'Perimeter');
+propiedades = regionprops(tumorR, 'Area', 'Perimeter');
 area = propiedades.Area;
 perimetro = propiedades.Perimeter;
 
@@ -340,6 +314,14 @@ perimetro = propiedades.Perimeter;
 ENC = (2 * sqrt(pi * area)) / perimetro;
 
 
+
+%Buscar 2 imagenes + benignas
+%Calcular area tumor
+
+%PARAMETROS:
+% - M: intensidad media
+% - SM
+% - SK
 
 
 
