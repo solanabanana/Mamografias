@@ -1,67 +1,42 @@
 
+clc
+clear all
 
-function [resultado, X] = MalignoBenigno(tumor, ImgOrg)
+filename = { 'M1.jpg', 'M2.jpeg', 'M3.jpeg', 'M4.jpg' ,'M6.jpeg', 'M7.jpg','M8.jpg', 'M9.jpg' ,'M10.jpg', 'M11.jpg' ,'B1.jpg' ,'B2.jpg', 'B4.jpg','B5.jpg' ,'B6.jpg', 'B7.jpg' ,'B8.jpg', 'B9.jpg', 'B10.png', 'B11.jpg'};
+filename=filename';
 
-%calculamos los diferentes parametros para detereminar si es o no 
-%una masa maligna
+for k = 1:20
+    
+    img = imread(filename{k}); 
+    
+    %segmentamos el tumor 
+    tumor = TumorMama(filename{k});
+    
+    %determinamos si es maligno o benigno
+    [R, X] = MalignoBenigno(tumor, img);  
+    Xt(k,:)= X;
+end  
 
-%% verifico si se encontraron tumores 
-tumor_neg = sum(tumor(:)); 
+Y = [1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0];
 
-if tumor_neg == 0 %no hay tumor para analizar
-    resultado = 'N';
+modelo = fitglm(Xt,Y,'Distribution', 'binomial', 'Link','logit');
+
+%% 
+filenameV = { 'M12.jpeg', 'M13.jpeg', 'M14.jpeg', 'M15.jpg' ,'M16.jpg', 'B12.jpg','B13.jpg'};
+
+for k = 1:7
+    
+    imgV = imread(filenameV{k}); 
+    
+    %segmentamos el tumor 
+    tumorV = TumorMama(filenameV{k});
+    
+    %determinamos si es maligno o benigno
+    [R, X] = MalignoBenigno(tumorV, imgV);  
+    Xv(k,:)= X;
 end
 
-gray = ismatrix(ImgOrg);
-gris=ImgOrg;
+y_pred = predict(modelo, Xv);
 
-if gray == false %no esta en escala de grises
-    gris = rgb2gray(ImgOrg);
-end
-
-%% calculamos los parametros
-
-tumorR=double(gris).*tumor;
-tumorR=uint8(tumorR);
-
-vector=uint8(tumorR(:));
-vectord=double(tumorR(:));
-
-m = mean(tumorR(:));
-de = std2(vector);
-k = kurtosis(vectord);
-
-tumorBW = imbinarize(tumorR);
-% Calcular propiedades de la forma (área y perímetro) con regionprops
-propiedades = regionprops(tumorBW, 'Area', 'Perimeter');
-area = propiedades.Area;
-perimetro = propiedades.Perimeter;
-
-% Calcular el ENC
-ENC = (2 * sqrt(pi * area))/perimetro;
-
-% Calculamos la entropia del histograma
-imgH=imhist(tumorR);
-SK = skewness(imgH);
-
-% Calcular el gradiente de la imagen
-[dx, dy] = gradient(double(tumorR));
-% Calcular la magnitud del gradiente
-magnitud_gradiente = sqrt(dx.^2 + dy.^2);
-% Calcular la varianza de la magnitud del gradiente para medir la suavidad
-SM = var(magnitud_gradiente(:));
-
-if de>=7 && de<=15.5
-    resultado='M';
-elseif de>15.5 && k<100
-    resultado='M';
-elseif de<7 && k>2000
-    resultado='M';
-else
-    resultado='B';
-end
-
-
-X = [m de k area perimetro ENC SK];
-
-end
+% accuracy = sum(y == (y_pred > 0.5)) / length(y);
+% disp(['Accuracy: ', num2str(accuracy)]);
