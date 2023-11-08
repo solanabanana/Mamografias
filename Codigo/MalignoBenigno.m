@@ -1,4 +1,6 @@
-function resultado = MalignoBenigno(tumor, ImgOrg)
+
+
+function [resultado, X] = MalignoBenigno(tumor, ImgOrg)
 
 %calculamos los diferentes parametros para detereminar si es o no 
 %una masa maligna
@@ -10,41 +12,57 @@ if tumor_neg == 0 %no hay tumor para analizar
     resultado = 'N';
 end
 
-%% tenemos que aplicar la mascara a la imagen original 
-% para quedarnos con el segmento del tumor en esacala de grises
+gray = ismatrix(ImgOrg);
+gris=ImgOrg;
 
-% el analisis lo tenemos que hacer sobre la escala de grises!
-I = rgb2gray(ImgOrg);
-%aplico la mascara a la imagen origI = rgb2gray(ImgOrg);
-Tfinal = double(I).*tumor;
-Tfinal = uint8(Tfinal);
-
-% los parametros se calculan sobre las intensidades del histograma
-% calculamos el histograma
-[counts,binLocations] = imhist(Tfinal);
-
-%% desviacion estandar DE
-% es alta comparada con masas beningnas -> DE>80
-DE = std2(binLocations);
-
-%% Suavidad S
-% es alta para masas sospechosas -> S >0.10
-% -> VERRRR ???
-
-%% Asimetria A
-% es negativa para las masas sopechosas
-A = skewness(double(Tfinal(:)));
-
-%% Curtosis C
-% es alto para las masas sopechosas -> K>1000
-C = kurtosis(Tfinal(:));
-
-
-%%
-if DE >8 && A<1 && C>1000
-    resultado = 'M';
-else 
-    resultado = 'B';
+if gray == false %no esta en escala de grises
+    gris = rgb2gray(ImgOrg);
 end
 
+%% calculamos los parametros
+
+tumorR=double(gris).*tumor;
+tumorR=uint8(tumorR);
+
+vector=uint8(tumorR(:));
+vectord=double(tumorR(:));
+
+m = mean(tumorR(:));
+de = std2(vector);
+k = kurtosis(vectord);
+
+tumorBW = imbinarize(tumorR);
+% Calcular propiedades de la forma (área y perímetro) con regionprops
+propiedades = regionprops(tumorBW, 'Area', 'Perimeter');
+area = propiedades.Area;
+perimetro = propiedades.Perimeter;
+
+% Calcular el ENC
+ENC = (2 * sqrt(pi * area))/perimetro;
+
+% Calculamos la entropia del histograma
+imgH=imhist(tumorR);
+SK = skewness(imgH);
+
+% Calcular el gradiente de la imagen
+[dx, dy] = gradient(double(tumorR));
+% Calcular la magnitud del gradiente
+magnitud_gradiente = sqrt(dx.^2 + dy.^2);
+% Calcular la varianza de la magnitud del gradiente para medir la suavidad
+SM = var(magnitud_gradiente(:));
+
+if de>=7 && de<=15.5
+    resultado='M';
+elseif de>15.5 && k<100
+    resultado='M';
+elseif de<7 && k>2000
+    resultado='M';
+else
+    resultado='B';
 end
+
+
+X = [m de k area perimetro ENC SK];
+
+end
+
