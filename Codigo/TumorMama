@@ -1,29 +1,9 @@
-% TP PDI SIN FUNCION
 function tumor = TumorMama(filename)
 
-% filename='1507275789.jpeg';% FUNCIONA
-% filename='2018_BC0021642_ MLO_L.jpg';% FUNCIONA CON ESTE CODIGO TAMB no
-% funciona con un SE de 5 
-% filename='1506392319.jpeg';% FUNCIONA CON ESTE CODIGO TAMB
-% filename='1507275789.jpeg';%FUNCIONA
-% filename='1360800566.jpeg';% FUNCIONA
-% filename='146978545.jpeg';%NO FUNCIONA 
-% filename='Maligno3.jpg';% NO FUNCIONA PERO SI BORRAS MAS EL BORDE CREO Q VA A FUNCIONAR
-% filename='Maligno2.jpg';% FUNCIONA
-% filename='Maligno1.jpeg';% NO FUNCIONA - FUNCIONA CON SE 5
-
-% filename='1524699538.jpeg';% NO FUNCIONA PERO SI BORRAS MAS EL BORDE CREO Q VA A FUNCIONAR
-% filename='1223615557.jpeg';% NO FUNCIONA
-% filename='1203336509.jpeg';% NO FUNCIONA
-% filename='155909056.jpeg';% NO FUNCIONA - FUNCIONA CON SE 5
-
-%Estos son benignos
-% filename='2013_BC009941_ MLO_R.jpg';% FUNCIONA CON SE 5
-% filename='2016_BC005661_ MLO_R.jpg';% NO FUNCIONA CON SE 5
-
+%Leemos imagen
 img=imread(filename);
 
-
+%Sino está en escala de grises, la modifico para que lo esté
 gray = ismatrix(img);
 gris=img;
 if gray == false %no esta en escala de grises
@@ -31,42 +11,35 @@ if gray == false %no esta en escala de grises
 end
 
 
-% figure(1)
-% subplot(121)
-% imshow(img);
-% 
-J=histeq(gris);
-% subplot(122)
-% imshow(J)
-%imcontrast;
 
+%Determinamos un umbral en función del histograma ecualizado
+%Modificamos la imagen en función del umbral
+J=histeq(gris);
 umbral1=150;
 umbral2=255;
+
 img_out=imadjust(gris,[umbral1, umbral2]/255, [0, 255]/255);
 
-% figure(2)
-% imshow(img_out);
-
+%Binarizamos la imagen
 BW=imbinarize(img_out);
 
-% figure(3)
-% subplot(121)
-% imshow(BW)
+%Creamos un elemento estructurante con el que vamos a realizar operaciones
+%morfológicas sobre la mamografía
+se=strel('disk',7);
+BW=imclose(BW,se);
 
-%--------------------------
-%ELIMINO BORDES 
+%% ELIMINO BORDES 
 
 [B,L]=bwboundaries(BW);
 
 borde=size(L,2); %Nos quedamos con la altura de la matriz de etiquetas
 
-%cambiar 512 por tamano imagen!!
-
-
+%Obtengo índices de donde empieza y termina la matriz de etiquetas
 num=0;
-max_inicio=max(L(:,11));
+max_inicio=max(L(:,1));
 max_final=max(L(:,borde));
 
+%Si se encuentra un elemento en el borde, es ruido, lo eliminamos
 for i=1:max_inicio
     fila_inicio=find(L(:,1)==i);
 
@@ -77,8 +50,7 @@ for i=1:max_inicio
     end
 end
 
-%pongo solo un num porque solo aparecen elementos en uno de los dos bordes
-
+%Lo mismo hacemos para el otro borde
 for i=1:max_final
      fila_final=find(L(:,borde)==i);
 
@@ -88,121 +60,78 @@ for i=1:max_final
         L(L==num2)=0;
     end
 end
+%%
 
-
-% Visualizar la imagen resultante
-% subplot(122)
-% imshow(L);
-% ylabel('bordes sin elementos')
-
+%Binarizamos la matriz de etiquetas
 BWL=imbinarize(L);
 
-% figure(4)
-% imshow(BWL);
-% ylabel('binarizo sin bordes')
-
+%Creamos un elemento estructurante con el que vamos a realizar operaciones
+%morfológicas sobre la mamografía
 %---------------------
-SE1=strel('square',2);
+SE1=strel('square',5);
 SE2=strel('disk',3);
-SE3=strel('disk',5);
+SE3=strel('disk',10);
 % 
-% BW2=imerode(BW,SE1);
-% BW2=imerode(BW2,SE1);
-% BW2=imerode(BW2,SE2);
-BW2=imdilate(BWL,SE3);
 
-% figure(5)
-% subplot(131)
-% imshow(BW2)
-% ylabel('mascara dilatada')
+%TUVE QUE EROSIONAR PARA SACAR RUIDO! Dilatamos para agrandar y suavizar 
+%los elementos que se encuentran en la imagen
+BW2=imerode(BWL,SE1);
+BW2=imdilate(BW2,SE3);
 
 mask=BW2;
-% hold on;
-%-> puede ser que haya otros elementos que me agarra
-%los elimino (son de menor area que el del tumor)
 
-[Lq, B1] = bwboundaries(mask);
+
+% Le sacamos el área, el perímetro y el centroide de cada elemento presente
 L1 = bwlabel(mask);
-% Medir el área de cada objeto
 prop = regionprops(L1, 'Area', 'Perimeter', 'Centroid');
-% Encontrar el índice del objeto más pequeño
 areas = [prop.Area];
 perimeters = [prop.Perimeter];
 
+%Calculamos el factor de redondez
 for k = 1:length(prop)
     r = perimeters(k)/(2*pi) + 0.5;
     FR(k) = (4*pi*areas(k))/(perimeters(k)^2)*(1 - 0.5/r)^2;
 end
 
-% for k = 1:length(FR)
-%     circ_string = sprintf('%2.2f',FR(k));
-%     circulo = B{k};
-%     centroid = prop(k).Centroid;
-%     text(centroid(1), centroid(2), circ_string, ...
-%         'Color', 'red', 'FontSize', 10, 'HorizontalAlignment', 'center');
-% end
-
+%Si el FR es menor a 0.55 determinamos que no es un tumor ni una masa que 
+%nos interese, la eliminamos de la imagen
 for i=1:length(prop)
     if FR(i) < 0.55
        mask(L1 == i) = 0;
     end
 end
 
+%%Saco matriz de etiquetas y area de los elementos de la mascara modificada
 L2 = bwlabel(mask);
 prop2 = regionprops(mask, 'Area');
 areas2 = [prop2.Area];
+
+%Obtengo el indice del elemento de mayor area
 [valor_max, indice_circulo_mas_grande] = max(areas2);
-% subplot(132)
-% imshow(mask);
-% ylabel('mascara semi')
-% Eliminar los objetos pequeños si hay mas de un objeto en la imagen
+
+%Si hay más de un elemento de la máscara, elimino el más grande que es un
+%borde o algo detectado que no es un tumor
 if length(areas2)>1
    for i=1:length(areas2)
        mask(L2 ~= indice_circulo_mas_grande) = 0;
    end
 end
 
-
-% Podemos hacer un while, quedarse con el indice del maximo y ir borrando
-% los mas chicos a este
-
-% subplot(133)
-% imshow(mask);
-% ylabel('mascara final')
-
-%------------
+% Segmentamos la zona del tumor
 tumor=BW.*mask;
 
-% figure(6)
+%Obtenemos bordes y matriz de etiquetas de la zona dilatada del tumor
 [B3,L3] = bwboundaries(tumor);
 
+%Obtenemos los elementos dentro de la zona dilatada del tumor
 prop3 = regionprops(L3, 'Area');
 areas3 = [prop3.Area];
 [valor_max, indice_circulo_mas_grande3] = max(areas3);
 
-% Eliminar los objetos pequeños si hay mas de un objeto en la imagen
+% Eliminar los objetos pequeÃ±os si hay mas de un objeto en la imagen
 if length(areas3)>1
    for i=1:length(areas3)
        tumor(L3 ~= indice_circulo_mas_grande3) = 0;
    end
 end
-
-
-[B4,L4] = bwboundaries(tumor);
-% 
-% imshow(tumor)
-% ylabel('tumor'); hold on;
-% colors='r';
-
-
-% if(size(B4)>=1)
-%   boundary = B4{1};
-%   plot(boundary(:,2), boundary(:,1),...
-%        'r','LineWidth',2);
-% end
-
-% figure(7)
-% subplot(121)
-% imshow(img);
-% subplot(122)
-% imshow(tumor);
+end
