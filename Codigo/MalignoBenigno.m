@@ -1,11 +1,8 @@
-
-
 function [resultado, X] = MalignoBenigno(tumor, ImgOrg)
 
-%calculamos los diferentes parametros para detereminar si es o no 
-%una masa maligna
+%Determinamos si se encontró una masa o no y si esa masa es sospechosa o no
 
-%% verifico si se encontraron tumores 
+%% Verificamos si se encontraron tumores 
 tumor_neg = sum(tumor(:)); 
 
 if tumor_neg == 0 %no hay tumor para analizar
@@ -18,51 +15,41 @@ gris=ImgOrg;
 if gray == false %no esta en escala de grises
     gris = rgb2gray(ImgOrg);
 end
+%% Calculamos parámetros de la masa
 
-%% calculamos los parametros
-
+%Obtenemos la masa en su escala de grises original
 tumorR=double(gris).*tumor;
 tumorR=uint8(tumorR);
 
+% La vectorizamos
 vector=uint8(tumorR(:));
 vectord=double(tumorR(:));
 
+%Caclulamos la media
 m = mean(tumorR(:));
+
+%Calculamos el desvío estandar
 de = std2(vector);
+
+%Calculamos la curtosis
 k = kurtosis(vectord);
 
+%Binarizamos el tumor
 tumorBW = imbinarize(tumorR);
-% Calcular propiedades de la forma (área y perímetro) con regionprops
-propiedades = regionprops(tumorBW, 'Area', 'Perimeter');
-area = propiedades.Area;
-perimetro = propiedades.Perimeter;
 
-% Calcular el ENC
+% Calculamos el perímetro y el área del mismo
+propiedades = regionprops(tumorBW,'Area', 'Perimeter');
+perimetro = propiedades.Perimeter;
+area = propiedades.Area;
+
+% Calculamos el ENC
 ENC = (2 * sqrt(pi * area))/perimetro;
 
-% Calculamos la entropia del histograma
-imgH=imhist(tumorR);
-SK = skewness(imgH);
-
-% Calcular el gradiente de la imagen
-[dx, dy] = gradient(double(tumorR));
-% Calcular la magnitud del gradiente
-magnitud_gradiente = sqrt(dx.^2 + dy.^2);
-% Calcular la varianza de la magnitud del gradiente para medir la suavidad
-SM = var(magnitud_gradiente(:));
-
-if de>=7 && de<=15.5
-    resultado='M';
-elseif de>15.5 && k<100
-    resultado='M';
-elseif de<7 && k>2000
-    resultado='M';
+if m<0.08
+    resultado='N';
 else
-    resultado='B';
+    resultado='T';
 end
 
-
-X = [m de k area perimetro ENC SK];
-
+X = [de k m ENC perimetro];
 end
-
