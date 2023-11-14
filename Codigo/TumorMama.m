@@ -109,8 +109,7 @@ areas2 = [prop2.Area];
 %Obtengo el indice del elemento de mayor area
 [valor_max, indice_circulo_mas_grande] = max(areas2);
 
-%Si hay más de un elemento de la máscara, elimino el más grande que es un
-%borde o algo detectado que no es un tumor
+%Si hay más de un elemento de la máscara, me quedo con el objeto más grande, es decir el tumor
 if length(areas2)>1
    for i=1:length(areas2)
        mask(L2 ~= indice_circulo_mas_grande) = 0;
